@@ -1,1 +1,1342 @@
 
+<!DOCTYPE html>
+<html lang="es" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#07080c">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>BEATSYNC // Andrés Vereda — BPM & Track ID</title>
+   
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+   
+    <!-- Google Fonts: Inter & JetBrains Mono para números técnicos -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet">
+   
+    <!-- FontAwesome para iconos de audio/DJ -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    colors: {
+                        club: {
+                            bg: '#07080c',
+                            card: '#0f111a',
+                            border: '#1e2235',
+                            cyan: '#00f0ff',
+                            magenta: '#ff0055',
+                            purple: '#8a2be2',
+                            green: '#00ff88'
+                        }
+                    },
+                    animation: {
+                        'pulse-fast': 'pulse 0.8s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'spin-slow': 'spin 8s linear infinite',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        /* Estilos personalizados para estética de cabina de DJ y efectos neón */
+        body {
+            background-color: #07080c;
+            color: #f1f5f9;
+            -webkit-tap-highlight-color: transparent;
+            overscroll-behavior-y: none;
+        }
+
+        .neon-cyan-glow {
+            box-shadow: 0 0 20px rgba(0, 240, 255, 0.25), inset 0 0 12px rgba(0, 240, 255, 0.1);
+        }
+
+        .neon-magenta-glow {
+            box-shadow: 0 0 25px rgba(255, 0, 85, 0.35), inset 0 0 15px rgba(255, 0, 85, 0.15);
+        }
+
+        .neon-text-cyan {
+            text-shadow: 0 0 15px rgba(0, 240, 255, 0.6);
+        }
+
+        .neon-text-magenta {
+            text-shadow: 0 0 15px rgba(255, 0, 85, 0.6);
+        }
+
+        /* Onda expansiva para el botón de escucha activo */
+        @keyframes ripple {
+            0% {
+                transform: scale(0.95);
+                opacity: 0.8;
+            }
+            100% {
+                transform: scale(1.45);
+                opacity: 0;
+            }
+        }
+
+        .listening-ring {
+            animation: ripple 1.8s infinite ease-out;
+        }
+
+        .listening-ring-delay {
+            animation: ripple 1.8s infinite ease-out 0.9s;
+        }
+
+        /* Personalización de scrollbar para historial */
+        ::-webkit-scrollbar {
+            width: 5px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #07080c;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #1e2235;
+            border-radius: 9999px;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col items-center justify-between selection:bg-club-cyan selection:text-black">
+
+    <!-- Contenedor Principal Mobile-First -->
+    <div class="w-full max-w-md mx-auto px-4 pt-4 pb-8 flex flex-col gap-4">
+
+        <!-- Cabecera / Barra Superior -->
+        <header class="flex items-center justify-between bg-club-card/90 backdrop-blur-md border border-club-border rounded-2xl px-4 py-3">
+            <div class="flex items-center gap-2.5">
+                <div class="w-8 h-8 rounded-xl bg-gradient-to-tr from-club-cyan to-club-magenta flex items-center justify-center text-black font-extrabold shadow-lg">
+                    <i class="fa-solid fa-wave-square text-sm"></i>
+                </div>
+                <div>
+                    <h1 class="font-extrabold text-sm tracking-wider uppercase text-white flex items-center gap-1.5">
+                        BEATSYNC <span class="text-[10px] px-1.5 py-0.5 rounded bg-club-cyan/15 text-club-cyan border border-club-cyan/30 font-mono">PRO</span>
+                    </h1>
+                    <p class="text-[11px] font-medium text-club-cyan/90">Cabina de <span class="font-bold text-white">Andrés Vereda</span></p>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-2">
+                <!-- Indicador de estado del micrófono -->
+                <div id="micStatusBadge" class="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-900 border border-club-border text-[11px] font-medium text-slate-400">
+                    <span id="micStatusDot" class="w-2 h-2 rounded-full bg-slate-600"></span>
+                    <span id="micStatusText">En espera</span>
+                </div>
+
+                <!-- Botón Configuración API -->
+                <button id="openSettingsBtn" aria-label="Configuración de API" class="w-9 h-9 rounded-xl bg-slate-900 hover:bg-slate-800 border border-club-border flex items-center justify-center text-slate-300 hover:text-club-cyan transition active:scale-95">
+                    <i class="fa-solid fa-gear"></i>
+                </button>
+            </div>
+        </header>
+
+        <!-- Notificación / Toast de mensajes (Reemplaza alert()) -->
+        <div id="toastBanner" class="hidden transform transition-all duration-300 rounded-xl px-4 py-2.5 text-xs font-medium flex items-center justify-between border shadow-lg">
+            <div class="flex items-center gap-2">
+                <i id="toastIcon" class="fa-solid fa-circle-info"></i>
+                <span id="toastMessage">Mensaje del sistema</span>
+            </div>
+            <button id="closeToastBtn" class="ml-3 opacity-70 hover:opacity-100"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+
+        <!-- Módulo Principal: Display de BPM + Beat LED + Multiplicadores -->
+        <section class="relative bg-club-card border border-club-border rounded-3xl p-5 overflow-hidden shadow-2xl">
+            <!-- Brillo ambiental sutil -->
+            <div class="absolute -top-20 -right-20 w-44 h-44 bg-club-cyan/10 rounded-full blur-3xl pointer-events-none"></div>
+            <div class="absolute -bottom-20 -left-20 w-44 h-44 bg-club-magenta/10 rounded-full blur-3xl pointer-events-none"></div>
+
+            <!-- Fila superior: Beat LED, Rango y Confianza -->
+            <div class="flex items-center justify-between mb-2">
+                <div class="flex items-center gap-2">
+                    <!-- LED de pulso sincronizado con el bombo -->
+                    <div id="beatLed" class="w-3.5 h-3.5 rounded-full bg-slate-800 border border-slate-600 transition-transform duration-75"></div>
+                    <span class="text-xs font-mono uppercase tracking-widest text-slate-400">KICK PULSE</span>
+                </div>
+
+                <!-- Selector de rango de tempo para evitar errores x2 / ÷2 -->
+                <select id="bpmRangeSelect" aria-label="Rango de BPM" class="bg-slate-900/90 border border-club-border text-xs font-mono text-slate-300 rounded-lg px-2 py-1 focus:outline-none focus:border-club-cyan">
+                    <option value="70-180">Rango: 70–180</option>
+                    <option value="95-160" selected>Club: 95–160</option>
+                    <option value="120-190">Hard/DnB: 120–190</option>
+                </select>
+            </div>
+
+            <!-- Lectura Gigante de BPM -->
+            <div class="flex flex-col items-center justify-center my-2">
+                <div class="flex items-baseline justify-center gap-1">
+                    <span id="bpmDisplay" class="font-mono font-extrabold text-7xl sm:text-8xl tracking-tighter text-white transition-colors">---</span>
+                    <span class="font-mono text-sm font-bold text-club-cyan tracking-widest uppercase">BPM</span>
+                </div>
+               
+                <!-- Sub-lectura decimal y estado de estabilidad -->
+                <div class="flex items-center gap-3 mt-1">
+                    <span id="bpmExactDisplay" class="font-mono text-xs text-slate-400">000.00 exacto</span>
+                    <span class="text-slate-700">•</span>
+                    <span id="stabilityText" class="text-xs font-medium text-slate-500">Sin señal de audio</span>
+                </div>
+            </div>
+
+            <!-- Controles rápidos de ajuste de BPM (÷2, Reset, x2, Guardar) -->
+            <div class="grid grid-cols-4 gap-2 mt-4">
+                <button id="halfBpmBtn" class="py-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-club-border font-mono text-xs font-bold text-slate-300 active:scale-95 transition">
+                    ÷2
+                </button>
+                <button id="doubleBpmBtn" class="py-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-club-border font-mono text-xs font-bold text-slate-300 active:scale-95 transition">
+                    ×2
+                </button>
+                <button id="resetBpmBtn" class="py-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-club-border text-xs font-semibold text-slate-300 active:scale-95 transition">
+                    <i class="fa-solid fa-rotate-right mr-1"></i>Reset
+                </button>
+                <button id="saveBpmBtn" class="py-2 rounded-xl bg-club-cyan/15 hover:bg-club-cyan/25 border border-club-cyan/40 text-xs font-bold text-club-cyan active:scale-95 transition">
+                    <i class="fa-solid fa-bookmark mr-1"></i>Anotar
+                </button>
+            </div>
+
+            <!-- Visualizador de Espectro de Graves (Sub/Kick) + Nivel dB -->
+            <div class="mt-4 pt-3 border-t border-club-border/70">
+                <div class="flex items-center justify-between text-[11px] font-mono text-slate-400 mb-1.5">
+                    <span>LOW-END SPECTRUM (20–160 Hz)</span>
+                    <span id="dbMeterText" class="text-club-cyan font-bold">-∞ dB</span>
+                </div>
+                <div class="w-full h-14 bg-slate-950/90 rounded-xl border border-slate-800/80 overflow-hidden relative">
+                    <canvas id="spectrumCanvas" class="w-full h-full block"></canvas>
+                </div>
+            </div>
+        </section>
+
+        <!-- Panel Central de Acción: Botón Escuchar + Identificar Canción (AudD & Google Gratis) + Tap Tempo -->
+        <section class="flex flex-col gap-3">
+           
+            <!-- Fila Superior: Tap Tempo + Botón Principal Escuchar + Track ID (AudD) -->
+            <div class="grid grid-cols-12 gap-3 items-stretch">
+                <!-- Botón Tap Tempo Manual (4 columnas) -->
+                <button id="tapTempoBtn" class="col-span-4 bg-club-card hover:bg-slate-900 border border-club-border active:border-club-cyan rounded-2xl p-3 flex flex-col items-center justify-center gap-1.5 transition active:scale-95 select-none">
+                    <div class="w-10 h-10 rounded-full bg-slate-900 border border-slate-700 flex items-center justify-center text-club-cyan">
+                        <i class="fa-solid fa-hand-pointer text-base"></i>
+                    </div>
+                    <span class="text-xs font-extrabold tracking-wide uppercase text-white">TAP</span>
+                    <span class="text-[10px] text-slate-400 text-center leading-tight">Marcar ritmo</span>
+                </button>
+
+                <!-- Botón Principal Escuchar / Detener (4 columnas) -->
+                <div class="col-span-4 relative flex items-center justify-center">
+                    <div id="pulseRing1" class="hidden absolute inset-1 rounded-2xl border-2 border-club-cyan pointer-events-none listening-ring"></div>
+                    <div id="pulseRing2" class="hidden absolute inset-1 rounded-2xl border border-club-cyan/60 pointer-events-none listening-ring-delay"></div>
+                   
+                    <button id="toggleListenBtn" class="relative z-10 w-full h-full min-h-[104px] rounded-2xl bg-gradient-to-b from-club-cyan to-cyan-500 text-black font-extrabold flex flex-col items-center justify-center gap-1.5 shadow-lg neon-cyan-glow transition transform active:scale-95">
+                        <i id="listenBtnIcon" class="fa-solid fa-microphone text-2xl"></i>
+                        <span id="listenBtnText" class="text-xs uppercase tracking-wider font-black">ESCUCHAR</span>
+                    </button>
+                </div>
+
+                <!-- Botón Reconocer Canción / Track ID AudD (4 columnas) -->
+                <button id="identifyTrackBtn" class="col-span-4 bg-club-card hover:bg-slate-900 border border-club-magenta/40 hover:border-club-magenta rounded-2xl p-3 flex flex-col items-center justify-center gap-1.5 transition active:scale-95 relative overflow-hidden">
+                    <div id="identifyProgressBg" class="absolute bottom-0 left-0 h-1 bg-club-magenta transition-all duration-100" style="width: 0%"></div>
+                    <div id="identifyIconWrapper" class="w-10 h-10 rounded-full bg-club-magenta/15 border border-club-magenta/40 flex items-center justify-center text-club-magenta">
+                        <i id="identifyBtnIcon" class="fa-solid fa-compact-disc text-lg"></i>
+                    </div>
+                    <span id="identifyBtnText" class="text-[11px] font-extrabold tracking-wide uppercase text-white text-center leading-tight">TRACK ID (AUDD)</span>
+                    <span id="identifySubText" class="text-[10px] text-slate-400 text-center leading-tight">Auto + Carátula</span>
+                </button>
+            </div>
+
+            <!-- Fila Inferior: Acceso Directo a Google Music Search (Gratis / Ilimitado en Android) -->
+            <button id="googleIdBtn" type="button" class="w-full bg-gradient-to-r from-[#111524] via-[#151b30] to-[#111524] hover:from-[#161c30] hover:to-[#161c30] border border-blue-500/40 hover:border-blue-400 rounded-2xl px-4 py-3 flex items-center justify-between transition active:scale-[0.99] shadow-lg group">
+                <div class="flex items-center gap-3">
+                    <div class="w-9 h-9 rounded-xl bg-white/10 border border-white/15 flex items-center justify-center text-base shadow-inner">
+                        <i class="fa-brands fa-google text-blue-400"></i>
+                    </div>
+                    <div class="text-left">
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs font-extrabold tracking-wide uppercase text-white">GOOGLE ID (GRATIS)</span>
+                            <span class="text-[9px] font-mono font-bold uppercase px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">SIN LÍMITE</span>
+                        </div>
+                        <p class="text-[11px] text-slate-400">Abrir escucha directa de Google en Android</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-1.5 text-blue-400 group-hover:translate-x-0.5 transition-transform">
+                    <i class="fa-solid fa-microphone-lines text-sm"></i>
+                    <i class="fa-solid fa-arrow-up-right-from-square text-xs opacity-75"></i>
+                </div>
+            </button>
+
+            <!-- Aviso discreto para reanudar el micrófono de BPM tras volver de Google -->
+            <div id="resumeMicBanner" class="hidden bg-club-cyan/10 border border-club-cyan/40 rounded-2xl px-4 py-2.5 flex items-center justify-between gap-3">
+                <div class="flex items-center gap-2.5 min-w-0">
+                    <i class="fa-solid fa-pause-circle text-club-cyan text-base flex-shrink-0"></i>
+                    <p class="text-xs text-cyan-100 leading-snug">Micrófono pausado para liberar audio a Google.</p>
+                </div>
+                <button id="resumeMicBtn" type="button" class="flex-shrink-0 px-3 py-1.5 rounded-xl bg-club-cyan text-black font-extrabold text-[11px] uppercase tracking-wider hover:bg-cyan-400 active:scale-95 transition">
+                    Reanudar BPM
+                </button>
+            </div>
+
+        </section>
+
+        <!-- Tarjeta de Resultado de Canción Identificada (Oculta hasta detectar tema) -->
+        <section id="trackResultCard" class="hidden bg-gradient-to-br from-club-card via-[#131626] to-club-card border border-club-magenta/50 rounded-3xl p-4 neon-magenta-glow transition-all">
+            <div class="flex items-center justify-between mb-3">
+                <span class="text-[10px] font-mono font-bold uppercase tracking-widest px-2 py-0.5 rounded-full bg-club-magenta/20 text-club-magenta border border-club-magenta/30">
+                    <i class="fa-solid fa-check-circle mr-1"></i>Canción Identificada
+                </span>
+                <button id="closeTrackCardBtn" class="text-slate-400 hover:text-white text-xs p-1">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <div class="flex gap-3.5 items-center">
+                <!-- Carátula del Álbum con Fallback -->
+                <div class="relative w-20 h-20 rounded-2xl overflow-hidden bg-slate-900 border border-club-border flex-shrink-0 shadow-lg">
+                    <img id="trackCoverImg" src="https://placehold.co/200x200/0f111a/00f0ff?text=TRACK" alt="Carátula del álbum" onerror="this.src='https://placehold.co/200x200/0f111a/ff0055?text=DJ+ID'" class="w-full h-full object-cover">
+                </div>
+
+                <!-- Metadatos del Tema -->
+                <div class="flex-1 min-w-0">
+                    <h2 id="trackTitle" class="font-extrabold text-base text-white truncate">Título de la canción</h2>
+                    <p id="trackArtist" class="text-sm font-semibold text-club-cyan truncate">Artista</p>
+                    <p id="trackAlbum" class="text-xs text-slate-400 truncate mt-0.5">Álbum / Sello • Año</p>
+                    <div class="flex items-center gap-2 mt-1.5">
+                        <span id="trackDetectedBpmBadge" class="text-[11px] font-mono px-2 py-0.5 rounded bg-slate-900 border border-club-border text-slate-200">
+                            -- BPM
+                        </span>
+                        <span id="trackTimecodeBadge" class="text-[11px] font-mono text-slate-400">
+                            00:00
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Enlaces rápidos a plataformas DJ / Streaming -->
+            <div class="grid grid-cols-3 gap-2 mt-4 pt-3 border-t border-club-border/80">
+                <a id="linkSpotify" href="#" target="_blank" rel="noopener noreferrer" class="py-2 px-2 rounded-xl bg-[#1DB954]/15 hover:bg-[#1DB954]/25 border border-[#1DB954]/40 text-[#1DB954] text-xs font-bold flex items-center justify-center gap-1.5 transition">
+                    <i class="fa-brands fa-spotify"></i> Spotify
+                </a>
+                <a id="linkYoutube" href="#" target="_blank" rel="noopener noreferrer" class="py-2 px-2 rounded-xl bg-[#FF0000]/15 hover:bg-[#FF0000]/25 border border-[#FF0000]/40 text-[#ff4d4d] text-xs font-bold flex items-center justify-center gap-1.5 transition">
+                    <i class="fa-brands fa-youtube"></i> YouTube
+                </a>
+                <a id="linkBeatport" href="#" target="_blank" rel="noopener noreferrer" class="py-2 px-2 rounded-xl bg-club-cyan/15 hover:bg-club-cyan/25 border border-club-cyan/40 text-club-cyan text-xs font-bold flex items-center justify-center gap-1.5 transition">
+                    <i class="fa-solid fa-headphones"></i> Beatport
+                </a>
+            </div>
+        </section>
+
+        <!-- Panel Técnico DJ: Tiempos de Delay / Loop en Milisegundos (ms) -->
+        <section class="bg-club-card border border-club-border rounded-2xl p-4">
+            <div class="flex items-center justify-between mb-3">
+                <h3 class="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
+                    <i class="fa-solid fa-stopwatch text-club-cyan"></i>
+                    Tiempos FX / Delay & Loops
+                </h3>
+                <span class="text-[10px] font-mono text-slate-500">MILISEGUNDOS (ms)</span>
+            </div>
+
+            <div class="grid grid-cols-4 gap-2 text-center">
+                <div class="bg-slate-950/90 border border-slate-800/90 rounded-xl p-2">
+                    <div class="text-[10px] text-slate-400 font-medium">1/4 Negra</div>
+                    <div id="msQuarter" class="font-mono font-bold text-sm text-white mt-0.5">---</div>
+                </div>
+                <div class="bg-slate-950/90 border border-slate-800/90 rounded-xl p-2">
+                    <div class="text-[10px] text-slate-400 font-medium">1/8 Corchea</div>
+                    <div id="msEighth" class="font-mono font-bold text-sm text-club-cyan mt-0.5">---</div>
+                </div>
+                <div class="bg-slate-950/90 border border-slate-800/90 rounded-xl p-2">
+                    <div class="text-[10px] text-slate-400 font-medium">1/16 Semi</div>
+                    <div id="msSixteenth" class="font-mono font-bold text-sm text-white mt-0.5">---</div>
+                </div>
+                <div class="bg-slate-950/90 border border-slate-800/90 rounded-xl p-2">
+                    <div class="text-[10px] text-slate-400 font-medium">1/8T Tresillo</div>
+                    <div id="msTriplet" class="font-mono font-bold text-sm text-club-magenta mt-0.5">---</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Historial de Sesión (Tracklist + BPMs guardados) -->
+        <section class="bg-club-card border border-club-border rounded-2xl p-4">
+            <div class="flex items-center justify-between mb-3">
+                <h3 class="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
+                    <i class="fa-solid fa-list-ul text-club-magenta"></i>
+                    Sesión Andrés Vereda (<span id="historyCount">0</span>)
+                </h3>
+                <div class="flex items-center gap-2">
+                    <button id="copyHistoryBtn" class="text-[11px] font-medium px-2.5 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 border border-club-border text-slate-300 transition">
+                        <i class="fa-regular fa-copy mr-1"></i>Copiar
+                    </button>
+                    <button id="clearHistoryBtn" class="text-[11px] font-medium px-2.5 py-1 rounded-lg bg-slate-900 hover:bg-red-950/50 border border-club-border text-slate-400 hover:text-red-400 transition">
+                        Limpiar
+                    </button>
+                </div>
+            </div>
+
+            <div id="historyList" class="flex flex-col gap-2 max-h-56 overflow-y-auto pr-1">
+                <div class="text-center py-6 text-xs text-slate-500 border border-dashed border-slate-800 rounded-xl">
+                    Aún no hay temas ni lecturas guardadas en esta sesión.
+                </div>
+            </div>
+        </section>
+
+    </div>
+
+    <!-- Modal de Configuración (API Key de AudD) -->
+    <div id="settingsModal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-club-card border border-club-border rounded-3xl w-full max-w-md p-5 shadow-2xl">
+            <div class="flex items-center justify-between pb-3 border-b border-club-border">
+                <h3 class="font-bold text-base text-white flex items-center gap-2">
+                    <i class="fa-solid fa-sliders text-club-cyan"></i>
+                    Ajustes de Reconocimiento
+                </h3>
+                <button id="closeSettingsBtn" class="w-8 h-8 rounded-full bg-slate-900 text-slate-400 hover:text-white flex items-center justify-center">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <div class="py-4 flex flex-col gap-4">
+                <div>
+                    <label for="auddApiKeyInput" class="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-1.5">
+                        Token API de AudD (Reconocimiento Musical)
+                    </label>
+                    <input id="auddApiKeyInput" type="text" placeholder="Ej: test (por defecto)" class="w-full bg-slate-950 border border-club-border focus:border-club-cyan rounded-xl px-3.5 py-2.5 text-sm font-mono text-white focus:outline-none">
+                    <p class="text-[11px] text-slate-400 mt-2 leading-relaxed">
+                        Por defecto usa el token <code class="text-club-cyan bg-slate-900 px-1 rounded">test</code> (ideal para probar, con límite diario compartido). Si vas a usarlo mucho en cabina, obtén tu API key gratuita en <a href="https://dashboard.audd.io/" target="_blank" rel="noopener noreferrer" class="text-club-cyan underline">dashboard.audd.io</a> y pégala aquí.
+                    </p>
+                </div>
+
+                <div>
+                    <label for="recDurationSelect" class="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-1.5">
+                        Duración de muestra para Track ID
+                    </label>
+                    <select id="recDurationSelect" class="w-full bg-slate-950 border border-club-border focus:border-club-cyan rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none">
+                        <option value="5000">5 segundos (Rápido)</option>
+                        <option value="7000" selected>7 segundos (Recomendado)</option>
+                        <option value="10000">10 segundos (Ambiente ruidoso)</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="flex justify-end gap-2 pt-3 border-t border-club-border">
+                <button id="saveSettingsBtn" class="w-full py-3 rounded-xl bg-club-cyan text-black font-extrabold text-xs uppercase tracking-wider hover:bg-cyan-400 transition">
+                    Guardar Configuración
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Lógica Completa de Audio, Detección de BPM y Reconocimiento Musical -->
+    <script>
+        /**
+         * BEATSYNC PRO - Aplicación Web de Detección de BPM en Tiempo Real y Track ID
+         * Arquitectura:
+         * 1. Web Audio API (AudioContext + BiquadFilterNode LowPass + AnalyserNode) para aislar el kick (bombo).
+         * 2. Algoritmo de detección de picos por umbral dinámico de energía + filtrado de intervalos + promedio móvil.
+         * 3. MediaRecorder API para capturar fragmentos de audio y enviarlos a la API REST de AudD.
+         * 4. LocalStorage para persistir el historial de sesión y la API Key del usuario.
+         */
+
+        // ==========================================
+        // ESTADO GLOBAL DE LA APLICACIÓN
+        // ==========================================
+        const state = {
+            isListening: false,
+            isIdentifying: false,
+            audioCtx: null,
+            mediaStream: null,
+            sourceNode: null,
+            lowPassFilter: null,
+            analyserNode: null,
+            animationFrameId: null,
+           
+            // Variables de detección de BPM
+            currentBpm: 0,
+            exactBpm: 0,
+            peakTimes: [],
+            bpmHistoryBuffer: [],
+            energyHistory: [],
+            lastPeakTime: 0,
+            minBpm: 95,
+            maxBpm: 160,
+
+            // Tap Tempo manual
+            tapTimes: [],
+
+            // Configuración y Persistencia
+            auddApiKey: localStorage.getItem('beatsync_audd_key') || 'test',
+            recDurationMs: parseInt(localStorage.getItem('beatsync_rec_duration') || '7000', 10),
+            sessionHistory: JSON.parse(localStorage.getItem('beatsync_history') || '[]')
+        };
+
+        // ==========================================
+        // REFERENCIAS AL DOM
+        // ==========================================
+        const dom = {
+            micStatusBadge: document.getElementById('micStatusBadge'),
+            micStatusDot: document.getElementById('micStatusDot'),
+            micStatusText: document.getElementById('micStatusText'),
+           
+            bpmDisplay: document.getElementById('bpmDisplay'),
+            bpmExactDisplay: document.getElementById('bpmExactDisplay'),
+            stabilityText: document.getElementById('stabilityText'),
+            beatLed: document.getElementById('beatLed'),
+            bpmRangeSelect: document.getElementById('bpmRangeSelect'),
+           
+            halfBpmBtn: document.getElementById('halfBpmBtn'),
+            doubleBpmBtn: document.getElementById('doubleBpmBtn'),
+            resetBpmBtn: document.getElementById('resetBpmBtn'),
+            saveBpmBtn: document.getElementById('saveBpmBtn'),
+           
+            spectrumCanvas: document.getElementById('spectrumCanvas'),
+            dbMeterText: document.getElementById('dbMeterText'),
+           
+            tapTempoBtn: document.getElementById('tapTempoBtn'),
+            toggleListenBtn: document.getElementById('toggleListenBtn'),
+            listenBtnIcon: document.getElementById('listenBtnIcon'),
+            listenBtnText: document.getElementById('listenBtnText'),
+            pulseRing1: document.getElementById('pulseRing1'),
+            pulseRing2: document.getElementById('pulseRing2'),
+           
+            identifyTrackBtn: document.getElementById('identifyTrackBtn'),
+            identifyProgressBg: document.getElementById('identifyProgressBg'),
+            identifyIconWrapper: document.getElementById('identifyIconWrapper'),
+            identifyBtnIcon: document.getElementById('identifyBtnIcon'),
+            identifyBtnText: document.getElementById('identifyBtnText'),
+            identifySubText: document.getElementById('identifySubText'),
+            googleIdBtn: document.getElementById('googleIdBtn'),
+            resumeMicBanner: document.getElementById('resumeMicBanner'),
+            resumeMicBtn: document.getElementById('resumeMicBtn'),
+           
+            trackResultCard: document.getElementById('trackResultCard'),
+            closeTrackCardBtn: document.getElementById('closeTrackCardBtn'),
+            trackCoverImg: document.getElementById('trackCoverImg'),
+            trackTitle: document.getElementById('trackTitle'),
+            trackArtist: document.getElementById('trackArtist'),
+            trackAlbum: document.getElementById('trackAlbum'),
+            trackDetectedBpmBadge: document.getElementById('trackDetectedBpmBadge'),
+            trackTimecodeBadge: document.getElementById('trackTimecodeBadge'),
+            linkSpotify: document.getElementById('linkSpotify'),
+            linkYoutube: document.getElementById('linkYoutube'),
+            linkBeatport: document.getElementById('linkBeatport'),
+           
+            msQuarter: document.getElementById('msQuarter'),
+            msEighth: document.getElementById('msEighth'),
+            msSixteenth: document.getElementById('msSixteenth'),
+            msTriplet: document.getElementById('msTriplet'),
+           
+            historyList: document.getElementById('historyList'),
+            historyCount: document.getElementById('historyCount'),
+            copyHistoryBtn: document.getElementById('copyHistoryBtn'),
+            clearHistoryBtn: document.getElementById('clearHistoryBtn'),
+           
+            settingsModal: document.getElementById('settingsModal'),
+            openSettingsBtn: document.getElementById('openSettingsBtn'),
+            closeSettingsBtn: document.getElementById('closeSettingsBtn'),
+            auddApiKeyInput: document.getElementById('auddApiKeyInput'),
+            recDurationSelect: document.getElementById('recDurationSelect'),
+            saveSettingsBtn: document.getElementById('saveSettingsBtn'),
+           
+            toastBanner: document.getElementById('toastBanner'),
+            toastIcon: document.getElementById('toastIcon'),
+            toastMessage: document.getElementById('toastMessage'),
+            closeToastBtn: document.getElementById('closeToastBtn')
+        };
+
+        // ==========================================
+        // SISTEMA DE NOTIFICACIONES (NO ALERT)
+        // ==========================================
+        let toastTimeout = null;
+        function showToast(message, type = 'info') {
+            clearTimeout(toastTimeout);
+            dom.toastMessage.textContent = message;
+            dom.toastBanner.className = 'transform transition-all duration-300 rounded-xl px-4 py-2.5 text-xs font-medium flex items-center justify-between border shadow-lg';
+           
+            if (type === 'error') {
+                dom.toastBanner.classList.add('bg-red-950/90', 'border-red-500/50', 'text-red-200');
+                dom.toastIcon.className = 'fa-solid fa-triangle-exclamation text-red-400';
+            } else if (type === 'success') {
+                dom.toastBanner.classList.add('bg-emerald-950/90', 'border-emerald-500/50', 'text-emerald-200');
+                dom.toastIcon.className = 'fa-solid fa-circle-check text-emerald-400';
+            } else {
+                dom.toastBanner.classList.add('bg-slate-900/95', 'border-club-cyan/40', 'text-cyan-100');
+                dom.toastIcon.className = 'fa-solid fa-circle-info text-club-cyan';
+            }
+           
+            dom.toastBanner.classList.remove('hidden');
+            toastTimeout = setTimeout(() => {
+                dom.toastBanner.classList.add('hidden');
+            }, 5000);
+        }
+
+        dom.closeToastBtn.addEventListener('click', () => dom.toastBanner.classList.add('hidden'));
+
+        // ==========================================
+        // INICIALIZACIÓN Y GESTIÓN DE CANVAS RESPONSIVE
+        // ==========================================
+        const canvasCtx = dom.spectrumCanvas.getContext('2d');
+       
+        function resizeCanvas() {
+            const rect = dom.spectrumCanvas.parentElement.getBoundingClientRect();
+            const dpr = window.devicePixelRatio || 1;
+            dom.spectrumCanvas.width = rect.width * dpr;
+            dom.spectrumCanvas.height = rect.height * dpr;
+            canvasCtx.scale(dpr, dpr);
+            drawIdleSpectrum();
+        }
+
+        function drawIdleSpectrum() {
+            const width = dom.spectrumCanvas.parentElement.clientWidth;
+            const height = dom.spectrumCanvas.parentElement.clientHeight;
+            canvasCtx.clearRect(0, 0, width, height);
+           
+            // Dibujar barras en reposo
+            const barCount = 32;
+            const gap = 3;
+            const barWidth = (width - (barCount - 1) * gap) / barCount;
+           
+            for (let i = 0; i < barCount; i++) {
+                const x = i * (barWidth + gap);
+                canvasCtx.fillStyle = '#1e2235';
+                canvasCtx.beginPath();
+                canvasCtx.roundRect(x, height - 6, barWidth, 4, 2);
+                canvasCtx.fill();
+            }
+        }
+
+        window.addEventListener('resize', resizeCanvas);
+
+        // ==========================================
+        // ACTUALIZACIÓN DE UI DE BPM Y TIEMPOS FX (ms)
+        // ==========================================
+        function updateBpmUI(bpmValue, sourceLabel = 'Analizando...') {
+            if (!bpmValue || bpmValue <= 0) {
+                dom.bpmDisplay.textContent = '---';
+                dom.bpmDisplay.classList.remove('neon-text-cyan');
+                dom.bpmExactDisplay.textContent = '000.00 exacto';
+                dom.stabilityText.textContent = sourceLabel;
+                dom.msQuarter.textContent = '---';
+                dom.msEighth.textContent = '---';
+                dom.msSixteenth.textContent = '---';
+                dom.msTriplet.textContent = '---';
+                return;
+            }
+
+            state.exactBpm = bpmValue;
+            state.currentBpm = Math.round(bpmValue * 10) / 10;
+           
+            // Mostrar redondeado entero si es muy estable o con 1 decimal para precisión DJ
+            dom.bpmDisplay.textContent = Math.round(bpmValue);
+            dom.bpmDisplay.classList.add('neon-text-cyan');
+            dom.bpmExactDisplay.textContent = `${bpmValue.toFixed(2)} exacto`;
+            dom.stabilityText.textContent = sourceLabel;
+
+            // Cálculo de milisegundos para delays y loops: 60,000 ms / BPM = Negra (1/4)
+            const quarterMs = 60000 / bpmValue;
+            const eighthMs = quarterMs / 2;
+            const sixteenthMs = quarterMs / 4;
+            const tripletMs = quarterMs / 3;
+
+            dom.msQuarter.textContent = `${Math.round(quarterMs)}`;
+            dom.msEighth.textContent = `${Math.round(eighthMs)}`;
+            dom.msSixteenth.textContent = `${Math.round(sixteenthMs)}`;
+            dom.msTriplet.textContent = `${Math.round(tripletMs)}`;
+        }
+
+        function triggerBeatLed() {
+            dom.beatLed.classList.remove('bg-slate-800', 'border-slate-600');
+            dom.beatLed.classList.add('bg-club-cyan', 'border-white', 'scale-125', 'shadow-[0_0_12px_#00f0ff]');
+            setTimeout(() => {
+                dom.beatLed.classList.remove('bg-club-cyan', 'border-white', 'scale-125', 'shadow-[0_0_12px_#00f0ff]');
+                dom.beatLed.classList.add('bg-slate-800', 'border-slate-600');
+            }, 90);
+        }
+
+        // ==========================================
+        // CAPTURA DE AUDIO Y ALGORITMO DE DETECCIÓN BPM
+        // ==========================================
+        async function startListening() {
+            try {
+                // Comprobar si se está ejecutando en un contexto seguro (HTTPS o localhost)
+                if (!window.isSecureContext && window.location.protocol === 'file:') {
+                    throw new Error('INSECURE_FILE_PROTOCOL');
+                }
+
+                if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                    throw new Error('NO_MEDIA_DEVICES');
+                }
+
+                // Solicitar micrófono desactivando filtros de voz (crucial para música en vivo)
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    audio: {
+                        echoCancellation: false,
+                        noiseSuppression: false,
+                        autoGainControl: false
+                    }
+                });
+
+                state.mediaStream = stream;
+                const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+                state.audioCtx = new AudioContextClass();
+
+                // En móviles (Chrome/Brave) el AudioContext puede arrancar suspendido
+                if (state.audioCtx.state === 'suspended') {
+                    await state.audioCtx.resume();
+                }
+
+                state.sourceNode = state.audioCtx.createMediaStreamSource(stream);
+
+                // Filtro paso bajo a 140 Hz para aislar el bombo (Kick) y eliminar voces/platillos
+                state.lowPassFilter = state.audioCtx.createBiquadFilter();
+                state.lowPassFilter.type = 'lowpass';
+                state.lowPassFilter.frequency.setValueAtTime(140, state.audioCtx.currentTime);
+                state.lowPassFilter.Q.setValueAtTime(1.2, state.audioCtx.currentTime);
+
+                // Analizador de frecuencias y forma de onda
+                state.analyserNode = state.audioCtx.createAnalyser();
+                state.analyserNode.fftSize = 1024;
+                state.analyserNode.smoothingTimeConstant = 0.4;
+
+                // Conectar grafo de audio: Micrófono -> Filtro Graves -> Analizador
+                state.sourceNode.connect(state.lowPassFilter);
+                state.lowPassFilter.connect(state.analyserNode);
+
+                state.isListening = true;
+                resetBpmBuffers();
+                updateListeningUI(true);
+                processAudioLoop();
+
+            } catch (err) {
+                console.error('Error al iniciar micrófono:', err);
+                let userMsg = 'No se pudo acceder al micrófono. Revisa los permisos del navegador.';
+
+                if (err.message === 'INSECURE_FILE_PROTOCOL' || !window.isSecureContext) {
+                    userMsg = 'Bloqueado por seguridad: Brave no permite micrófono abriendo un archivo local (file://). Súbelo a HTTPS (ej. Netlify Drop) o usa localhost.';
+                } else if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+                    userMsg = 'Permiso denegado en Brave. Toca el candado en la barra de direcciones -> Permisos -> Micrófono -> Permitir.';
+                } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
+                    userMsg = 'No se detectó ningún micrófono disponible en el dispositivo.';
+                } else if (err.name === 'NotReadableError' || err.name === 'TrackStartError') {
+                    userMsg = 'El micrófono está siendo usado por otra app (ej. Asistente de Google o grabadora).';
+                }
+
+                showToast(userMsg, 'error');
+                updateListeningUI(false);
+            }
+        }
+
+        function stopListening() {
+            state.isListening = false;
+            if (state.animationFrameId) {
+                cancelAnimationFrame(state.animationFrameId);
+                state.animationFrameId = null;
+            }
+            if (state.mediaStream) {
+                state.mediaStream.getTracks().forEach(track => track.stop());
+                state.mediaStream = null;
+            }
+            if (state.audioCtx && state.audioCtx.state !== 'closed') {
+                state.audioCtx.close();
+                state.audioCtx = null;
+            }
+            updateListeningUI(false);
+            drawIdleSpectrum();
+            dom.dbMeterText.textContent = '-∞ dB';
+        }
+
+        function updateListeningUI(active) {
+            if (active) {
+                dom.resumeMicBanner.classList.add('hidden');
+                dom.micStatusDot.className = 'w-2 h-2 rounded-full bg-club-green animate-ping';
+                dom.micStatusText.textContent = 'En vivo';
+                dom.micStatusText.className = 'text-club-green font-bold';
+               
+                dom.toggleListenBtn.classList.remove('from-club-cyan', 'to-cyan-500', 'text-black', 'neon-cyan-glow');
+                dom.toggleListenBtn.classList.add('from-club-magenta', 'to-rose-600', 'text-white', 'neon-magenta-glow');
+                dom.listenBtnIcon.className = 'fa-solid fa-stop text-2xl';
+                dom.listenBtnText.textContent = 'DETENER';
+               
+                dom.pulseRing1.classList.remove('hidden');
+                dom.pulseRing2.classList.remove('hidden');
+                dom.stabilityText.textContent = 'Escuchando bombo...';
+            } else {
+                dom.micStatusDot.className = 'w-2 h-2 rounded-full bg-slate-600';
+                dom.micStatusText.textContent = 'En espera';
+                dom.micStatusText.className = 'text-slate-400';
+               
+                dom.toggleListenBtn.classList.remove('from-club-magenta', 'to-rose-600', 'text-white', 'neon-magenta-glow');
+                dom.toggleListenBtn.classList.add('from-club-cyan', 'to-cyan-500', 'text-black', 'neon-cyan-glow');
+                dom.listenBtnIcon.className = 'fa-solid fa-microphone text-2xl';
+                dom.listenBtnText.textContent = 'ESCUCHAR';
+               
+                dom.pulseRing1.classList.add('hidden');
+                dom.pulseRing2.classList.add('hidden');
+                if (state.currentBpm === 0) {
+                    dom.stabilityText.textContent = 'Sin señal de audio';
+                }
+            }
+        }
+
+        function resetBpmBuffers() {
+            state.peakTimes = [];
+            state.bpmHistoryBuffer = [];
+            state.energyHistory = [];
+            state.lastPeakTime = 0;
+        }
+
+        /**
+         * Bucle principal en tiempo real (60fps):
+         * - Calcula la energía instantánea en sub-graves/graves.
+         * - Compara contra un umbral adaptativo (promedio de energía reciente * multiplicador).
+         * - Registra marcas de tiempo de cada golpe de bombo y calcula los BPM.
+         * - Dibuja el espectro en el canvas.
+         */
+        function processAudioLoop() {
+            if (!state.isListening || !state.analyserNode) return;
+
+            const bufferLength = state.analyserNode.frequencyBinCount;
+            const freqData = new Uint8Array(bufferLength);
+            const timeData = new Uint8Array(bufferLength);
+
+            state.analyserNode.getByteFrequencyData(freqData);
+            state.analyserNode.getByteTimeDomainData(timeData);
+
+            // 1. Calcular nivel RMS / dB aproximados de la señal filtrada
+            let sumSquares = 0;
+            for (let i = 0; i < timeData.length; i++) {
+                const normalized = (timeData[i] - 128) / 128;
+                sumSquares += normalized * normalized;
+            }
+            const rms = Math.sqrt(sumSquares / timeData.length);
+            const db = rms > 0.0001 ? Math.max(-60, Math.round(20 * Math.log10(rms))) : -60;
+            dom.dbMeterText.textContent = db <= -60 ? '-∞ dB' : `${db} dB`;
+
+            // 2. Calcular energía enfocada en los primeros bins de baja frecuencia (20Hz - 160Hz)
+            let bassEnergy = 0;
+            const bassBins = 12; // Primeros bins del FFT (graves profundos)
+            for (let i = 1; i <= bassBins; i++) {
+                bassEnergy += freqData[i];
+            }
+            bassEnergy /= bassBins;
+
+            // Mantener historial móvil de energía (~1.5 segundos a 60fps = 90 muestras)
+            state.energyHistory.push(bassEnergy);
+            if (state.energyHistory.length > 90) {
+                state.energyHistory.shift();
+            }
+
+            const avgEnergy = state.energyHistory.reduce((a, b) => a + b, 0) / state.energyHistory.length;
+           
+            // Umbral dinámico: debe superar el promedio local por un factor y tener un mínimo de volumen
+            const dynamicThreshold = Math.max(45, avgEnergy * 1.32);
+            const now = performance.now();
+           
+            // Tiempo mínimo entre golpes según el BPM máximo configurado (ej. 180 BPM = 333 ms)
+            const minIntervalMs = (60 / state.maxBpm) * 1000 * 0.85;
+
+            if (bassEnergy > dynamicThreshold && (now - state.lastPeakTime) > minIntervalMs) {
+                state.lastPeakTime = now;
+                triggerBeatLed();
+                registerBeatPeak(now);
+            }
+
+            // 3. Dibujar espectro visual de graves
+            renderSpectrumCanvas(freqData, bassEnergy > dynamicThreshold);
+
+            state.animationFrameId = requestAnimationFrame(processAudioLoop);
+        }
+
+        function registerBeatPeak(timestamp) {
+            state.peakTimes.push(timestamp);
+            // Conservar solo los últimos 16 golpes
+            if (state.peakTimes.length > 16) {
+                state.peakTimes.shift();
+            }
+
+            if (state.peakTimes.length < 4) return;
+
+            // Calcular intervalos entre picos consecutivos
+            const intervals = [];
+            for (let i = 1; i < state.peakTimes.length; i++) {
+                const diff = state.peakTimes[i] - state.peakTimes[i - 1];
+                // Descartar pausas largas (> 2.2 segundos, ej. un break sin bombo)
+                if (diff > 250 && diff < 2200) {
+                    intervals.push(diff);
+                }
+            }
+
+            if (intervals.length < 3) return;
+
+            // Convertir cada intervalo a BPM y normalizarlo dentro del rango elegido [minBpm, maxBpm]
+            const candidateBpms = intervals.map(ms => {
+                let bpm = 60000 / ms;
+                while (bpm < state.minBpm) bpm *= 2;
+                while (bpm > state.maxBpm) bpm /= 2;
+                return bpm;
+            });
+
+            // Ordenar y tomar la mediana para eliminar valores atípicos (outliers)
+            candidateBpms.sort((a, b) => a - b);
+            const medianBpm = candidateBpms[Math.floor(candidateBpms.length / 2)];
+
+            // Suavizado con promedio móvil de las últimas estimaciones
+            state.bpmHistoryBuffer.push(medianBpm);
+            if (state.bpmHistoryBuffer.length > 12) {
+                state.bpmHistoryBuffer.shift();
+            }
+
+            const smoothedBpm = state.bpmHistoryBuffer.reduce((a, b) => a + b, 0) / state.bpmHistoryBuffer.length;
+           
+            // Calcular desviación para mostrar indicador de estabilidad
+            const variance = state.bpmHistoryBuffer.reduce((acc, val) => acc + Math.abs(val - smoothedBpm), 0) / state.bpmHistoryBuffer.length;
+            const stabilityLabel = variance < 1.2 ? 'Tempo bloqueado (Alta precisión)' : 'Sincronizando ritmo...';
+
+            updateBpmUI(smoothedBpm, stabilityLabel);
+        }
+
+        function renderSpectrumCanvas(freqData, isPeak) {
+            const width = dom.spectrumCanvas.parentElement.clientWidth;
+            const height = dom.spectrumCanvas.parentElement.clientHeight;
+            canvasCtx.clearRect(0, 0, width, height);
+
+            const barCount = 32;
+            const gap = 3;
+            const barWidth = (width - (barCount - 1) * gap) / barCount;
+
+            for (let i = 0; i < barCount; i++) {
+                // Enfocamos las barras en los graves y medios-graves (primeros 40 bins)
+                const binIndex = Math.floor(i * 1.3) + 1;
+                const value = freqData[binIndex] || 0;
+                const percent = value / 255;
+                const barHeight = Math.max(4, percent * (height - 10));
+                const x = i * (barWidth + gap);
+                const y = height - barHeight - 2;
+
+                // Gradiente cian a magenta cuando golpea el kick
+                if (isPeak && i < 10) {
+                    canvasCtx.fillStyle = '#ff0055';
+                } else if (i < 12) {
+                    canvasCtx.fillStyle = '#00f0ff';
+                } else {
+                    canvasCtx.fillStyle = '#334155';
+                }
+
+                canvasCtx.beginPath();
+                canvasCtx.roundRect(x, y, barWidth, barHeight, 2);
+                canvasCtx.fill();
+            }
+        }
+
+        // ==========================================
+        // TAP TEMPO MANUAL
+        // ==========================================
+        dom.tapTempoBtn.addEventListener('click', () => {
+            const now = performance.now();
+            triggerBeatLed();
+
+            // Si pasaron más de 2.5 segundos desde el último toque, reiniciar secuencia
+            if (state.tapTimes.length > 0 && (now - state.tapTimes[state.tapTimes.length - 1]) > 2500) {
+                state.tapTimes = [];
+            }
+
+            state.tapTimes.push(now);
+            if (state.tapTimes.length > 8) {
+                state.tapTimes.shift();
+            }
+
+            if (state.tapTimes.length >= 2) {
+                let totalDiff = 0;
+                for (let i = 1; i < state.tapTimes.length; i++) {
+                    totalDiff += state.tapTimes[i] - state.tapTimes[i - 1];
+                }
+                const avgInterval = totalDiff / (state.tapTimes.length - 1);
+                const tapBpm = 60000 / avgInterval;
+                updateBpmUI(tapBpm, `Tap Tempo (${state.tapTimes.length} toques)`);
+            } else {
+                dom.stabilityText.textContent = 'Sigue tocando al ritmo...';
+            }
+        });
+
+        // ==========================================
+        // RECONOCIMIENTO DE CANCIÓN (API AUDD)
+        // ==========================================
+        async function identifySong() {
+            if (state.isIdentifying) return;
+
+            state.isIdentifying = true;
+            let tempStream = null;
+            let shouldCloseTempStream = false;
+
+            try {
+                // Reutilizar el stream activo si ya está escuchando, o pedir uno temporal
+                if (state.mediaStream && state.mediaStream.active) {
+                    tempStream = state.mediaStream;
+                } else {
+                    tempStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    shouldCloseTempStream = true;
+                }
+
+                // Determinar formato soportado por MediaRecorder (Chrome Android usa webm/opus, Safari mp4)
+                const mimeTypes = ['audio/webm;codecs=opus', 'audio/webm', 'audio/ogg;codecs=opus', 'audio/mp4'];
+                const supportedMime = mimeTypes.find(type => MediaRecorder.isTypeSupported(type)) || '';
+
+                const mediaRecorder = supportedMime
+                    ? new MediaRecorder(tempStream, { mimeType: supportedMime })
+                    : new MediaRecorder(tempStream);
+
+                const audioChunks = [];
+                mediaRecorder.ondataavailable = (e) => {
+                    if (e.data && e.data.size > 0) {
+                        audioChunks.push(e.data);
+                    }
+                };
+
+                // Actualizar interfaz a modo "Grabando muestra..."
+                dom.identifyBtnIcon.className = 'fa-solid fa-compact-disc fa-spin text-lg';
+                dom.identifyBtnText.textContent = 'GRABANDO';
+                dom.identifySubText.textContent = 'Capturando audio...';
+
+                const duration = state.recDurationMs;
+                const startTime = Date.now();
+               
+                // Barra de progreso visual durante la grabación
+                const progressInterval = setInterval(() => {
+                    const elapsed = Date.now() - startTime;
+                    const pct = Math.min(100, (elapsed / duration) * 100);
+                    dom.identifyProgressBg.style.width = `${pct}%`;
+                }, 80);
+
+                mediaRecorder.start();
+
+                await new Promise(resolve => setTimeout(resolve, duration));
+
+                clearInterval(progressInterval);
+                dom.identifyProgressBg.style.width = '100%';
+                dom.identifyBtnText.textContent = 'BUSCANDO';
+                dom.identifySubText.textContent = 'Consultando nube...';
+
+                // Detener grabación y obtener Blob
+                const audioBlob = await new Promise(resolve => {
+                    mediaRecorder.onstop = () => {
+                        resolve(new Blob(audioChunks, { type: supportedMime || 'audio/webm' }));
+                    };
+                    mediaRecorder.stop();
+                });
+
+                if (shouldCloseTempStream && tempStream) {
+                    tempStream.getTracks().forEach(t => t.stop());
+                }
+
+                // Enviar fragmento a AudD API
+                const formData = new FormData();
+                formData.append('api_token', state.auddApiKey || 'test');
+                formData.append('file', audioBlob, 'sample.webm');
+                formData.append('return', 'spotify,apple_music');
+
+                const response = await fetch('https://api.audd.io/', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Error de red (${response.status})`);
+                }
+
+                const data = await response.json();
+
+                if (data.status === 'error') {
+                    const errMsg = data.error?.error_message || 'Error en la API de reconocimiento.';
+                    throw new Error(errMsg);
+                }
+
+                if (!data.result) {
+                    showToast('No se pudo identificar la canción. Acerca más el móvil al altavoz o revisa tu API Key.', 'error');
+                } else {
+                    displayIdentifiedTrack(data.result);
+                    showToast(`¡Tema encontrado: ${data.result.title}!`, 'success');
+                }
+
+            } catch (error) {
+                console.error('Error en Track ID:', error);
+                showToast(error.message || 'Error al reconocer la canción.', 'error');
+            } finally {
+                state.isIdentifying = false;
+                dom.identifyProgressBg.style.width = '0%';
+                dom.identifyBtnIcon.className = 'fa-solid fa-compact-disc text-lg';
+                dom.identifyBtnText.textContent = 'TRACK ID (AUDD)';
+                dom.identifySubText.textContent = 'Auto + Carátula';
+            }
+        }
+
+        // ==========================================
+        // ACCESO DIRECTO A GOOGLE MUSIC SEARCH (ANDROID)
+        // ==========================================
+        function openGoogleMusicSearch() {
+            // Si el detector de BPM está usando el micrófono, lo pausamos para evitar bloqueo exclusivo en Android
+            if (state.isListening) {
+                stopListening();
+                dom.resumeMicBanner.classList.remove('hidden');
+            }
+
+            const isAndroid = /Android/i.test(navigator.userAgent);
+            const fallbackUrl = 'https://www.google.com/search?q=what+song+is+this';
+
+            if (isAndroid) {
+                // Intent nativo de la app de Google para abrir directamente el modo "Buscar una canción"
+                const intentUrl = 'intent:#Intent;action=com.google.android.googlequicksearchbox.MUSIC_SEARCH;S.browser_fallback_url=' + encodeURIComponent(fallbackUrl) + ';end';
+                window.location.href = intentUrl;
+            } else {
+                // Fallback para otros navegadores / escritorio
+                window.open(fallbackUrl, '_blank', 'noopener,noreferrer');
+            }
+        }
+
+        function displayIdentifiedTrack(result) {
+            const title = result.title || 'Título desconocido';
+            const artist = result.artist || 'Artista desconocido';
+            const album = result.album || 'Single';
+            const releaseYear = result.release_date ? result.release_date.substring(0, 4) : '';
+            const label = result.label ? ` • ${result.label}` : '';
+           
+            // Extraer carátula desde Spotify o Apple Music si está disponible en la respuesta
+            let coverUrl = 'https://placehold.co/200x200/0f111a/00f0ff?text=TRACK+ID';
+            if (result.spotify?.album?.images?.[0]?.url) {
+                coverUrl = result.spotify.album.images[0].url;
+            } else if (result.apple_music?.artwork?.url) {
+                coverUrl = result.apple_music.artwork.url.replace('{w}x{h}', '300x300');
+            }
+
+            dom.trackCoverImg.src = coverUrl;
+            dom.trackTitle.textContent = title;
+            dom.trackArtist.textContent = artist;
+            dom.trackAlbum.textContent = `${album}${label}${releaseYear ? ` (${releaseYear})` : ''}`;
+           
+            const bpmTag = state.currentBpm > 0 ? `${Math.round(state.currentBpm)} BPM` : 'BPM N/D';
+            dom.trackDetectedBpmBadge.textContent = bpmTag;
+            dom.trackTimecodeBadge.textContent = result.timecode ? `Minuto ${result.timecode}` : '';
+
+            // Enlaces directos para DJs
+            const queryEncoded = encodeURIComponent(`${artist} ${title}`);
+            dom.linkSpotify.href = result.spotify?.external_urls?.spotify || `https://open.spotify.com/search/${queryEncoded}`;
+            dom.linkYoutube.href = `https://www.youtube.com/results?search_query=${queryEncoded}`;
+            dom.linkBeatport.href = `https://www.beatport.com/search?q=${queryEncoded}`;
+
+            dom.trackResultCard.classList.remove('hidden');
+
+            // Guardar automáticamente en el historial de la sesión
+            addToSessionHistory({
+                type: 'track',
+                title,
+                artist,
+                bpm: state.currentBpm > 0 ? Math.round(state.currentBpm) : null,
+                cover: coverUrl,
+                timestamp: new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })
+            });
+        }
+
+        // ==========================================
+        // GESTIÓN DEL HISTORIAL DE SESIÓN
+        // ==========================================
+        function addToSessionHistory(entry) {
+            state.sessionHistory.unshift(entry);
+            if (state.sessionHistory.length > 50) {
+                state.sessionHistory.pop();
+            }
+            localStorage.setItem('beatsync_history', JSON.stringify(state.sessionHistory));
+            renderHistory();
+        }
+
+        function renderHistory() {
+            dom.historyCount.textContent = state.sessionHistory.length;
+
+            if (state.sessionHistory.length === 0) {
+                dom.historyList.innerHTML = `
+                    <div class="text-center py-6 text-xs text-slate-500 border border-dashed border-slate-800 rounded-xl">
+                        Aún no hay temas ni lecturas guardadas en esta sesión.
+                    </div>
+                `;
+                return;
+            }
+
+            dom.historyList.innerHTML = state.sessionHistory.map((item, idx) => {
+                const bpmBadge = item.bpm
+                    ? `<span class="font-mono font-bold text-xs px-2 py-0.5 rounded bg-club-cyan/15 text-club-cyan border border-club-cyan/30">${item.bpm} BPM</span>`
+                    : `<span class="font-mono text-[11px] px-2 py-0.5 rounded bg-slate-800 text-slate-400">-- BPM</span>`;
+
+                if (item.type === 'track') {
+                    return `
+                        <div class="flex items-center justify-between gap-2.5 bg-slate-950/90 border border-slate-800/90 rounded-xl p-2.5">
+                            <div class="flex items-center gap-2.5 min-w-0">
+                                <img src="${item.cover}" onerror="this.src='https://placehold.co/80x80/0f111a/00f0ff?text=ID'" alt="Cover" class="w-9 h-9 rounded-lg object-cover flex-shrink-0">
+                                <div class="min-w-0">
+                                    <div class="text-xs font-bold text-white truncate">${escapeHtml(item.title)}</div>
+                                    <div class="text-[11px] text-slate-400 truncate">${escapeHtml(item.artist)} • ${item.timestamp}</div>
+                                </div>
+                            </div>
+                            <div class="flex-shrink-0">${bpmBadge}</div>
+                        </div>
+                    `;
+                } else {
+                    return `
+                        <div class="flex items-center justify-between gap-2.5 bg-slate-950/90 border border-slate-800/90 rounded-xl p-2.5">
+                            <div class="flex items-center gap-2.5">
+                                <div class="w-9 h-9 rounded-lg bg-slate-900 border border-slate-800 flex items-center justify-center text-club-cyan">
+                                    <i class="fa-solid fa-wave-square text-xs"></i>
+                                </div>
+                                <div>
+                                    <div class="text-xs font-semibold text-slate-200">Lectura Manual de Tempo</div>
+                                    <div class="text-[11px] text-slate-500">Registrado a las ${item.timestamp}</div>
+                                </div>
+                            </div>
+                            <div>${bpmBadge}</div>
+                        </div>
+                    `;
+                }
+            }).join('');
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // ==========================================
+        // EVENTOS DE BOTONES Y CONTROLES
+        // ==========================================
+        dom.toggleListenBtn.addEventListener('click', () => {
+            if (state.isListening) {
+                stopListening();
+            } else {
+                startListening();
+            }
+        });
+
+        dom.identifyTrackBtn.addEventListener('click', identifySong);
+
+        dom.googleIdBtn.addEventListener('click', openGoogleMusicSearch);
+
+        dom.resumeMicBtn.addEventListener('click', () => {
+            dom.resumeMicBanner.classList.add('hidden');
+            startListening();
+        });
+
+        dom.closeTrackCardBtn.addEventListener('click', () => {
+            dom.trackResultCard.classList.add('hidden');
+        });
+
+        dom.bpmRangeSelect.addEventListener('change', (e) => {
+            const [min, max] = e.target.value.split('-').map(Number);
+            state.minBpm = min;
+            state.maxBpm = max;
+            resetBpmBuffers();
+            showToast(`Rango ajustado a ${min} - ${max} BPM`, 'info');
+        });
+
+        dom.halfBpmBtn.addEventListener('click', () => {
+            if (state.exactBpm > 0) {
+                updateBpmUI(state.exactBpm / 2, 'Ajustado manualmente (÷2)');
+            }
+        });
+
+        dom.doubleBpmBtn.addEventListener('click', () => {
+            if (state.exactBpm > 0) {
+                updateBpmUI(state.exactBpm * 2, 'Ajustado manualmente (×2)');
+            }
+        });
+
+        dom.resetBpmBtn.addEventListener('click', () => {
+            resetBpmBuffers();
+            state.tapTimes = [];
+            state.currentBpm = 0;
+            state.exactBpm = 0;
+            updateBpmUI(0, state.isListening ? 'Recalculando bombo...' : 'Sin señal de audio');
+        });
+
+        dom.saveBpmBtn.addEventListener('click', () => {
+            if (state.currentBpm <= 0) {
+                showToast('No hay ningún BPM detectado todavía para anotar.', 'error');
+                return;
+            }
+            addToSessionHistory({
+                type: 'bpm',
+                bpm: Math.round(state.currentBpm),
+                timestamp: new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })
+            });
+            showToast(`Anotado: ${Math.round(state.currentBpm)} BPM en el historial`, 'success');
+        });
+
+        // Copiar historial al portapapeles (usando execCommand para compatibilidad en iframes/móviles)
+        dom.copyHistoryBtn.addEventListener('click', () => {
+            const textLines = [
+                '🎧 BEATSYNC PRO — Sesión de Andrés Vereda',
+                '----------------------------------------',
+                ...state.sessionHistory.map(item => {
+                    if (item.type === 'track') {
+                        return `[${item.timestamp}] ${item.artist} - ${item.title} (${item.bpm ? item.bpm + ' BPM' : 'BPM N/D'})`;
+                    }
+                    return `[${item.timestamp}] Lectura: ${item.bpm} BPM`;
+                })
+            ].join('\n');
+
+            const tempArea = document.createElement('textarea');
+            tempArea.value = textLines;
+            document.body.appendChild(tempArea);
+            tempArea.select();
+            try {
+                document.execCommand('copy');
+                showToast('Tracklist copiado al portapapeles', 'success');
+            } catch (e) {
+                showToast('No se pudo copiar el texto', 'error');
+            }
+            document.body.removeChild(tempArea);
+        });
+
+        dom.clearHistoryBtn.addEventListener('click', () => {
+            state.sessionHistory = [];
+            localStorage.removeItem('beatsync_history');
+            renderHistory();
+            showToast('Historial de sesión limpiado', 'info');
+        });
+
+        // Modal de Configuración
+        dom.openSettingsBtn.addEventListener('click', () => {
+            dom.auddApiKeyInput.value = state.auddApiKey;
+            dom.recDurationSelect.value = state.recDurationMs.toString();
+            dom.settingsModal.classList.remove('hidden');
+        });
+
+        dom.closeSettingsBtn.addEventListener('click', () => {
+            dom.settingsModal.classList.add('hidden');
+        });
+
+        dom.saveSettingsBtn.addEventListener('click', () => {
+            const newKey = dom.auddApiKeyInput.value.trim() || 'test';
+            const newDuration = parseInt(dom.recDurationSelect.value, 10);
+           
+            state.auddApiKey = newKey;
+            state.recDurationMs = newDuration;
+           
+            localStorage.setItem('beatsync_audd_key', newKey);
+            localStorage.setItem('beatsync_rec_duration', newDuration.toString());
+           
+            dom.settingsModal.classList.add('hidden');
+            showToast('Configuración guardada correctamente', 'success');
+        });
+
+        // ==========================================
+        // INICIALIZACIÓN AL CARGAR LA PÁGINA
+        // ==========================================
+        window.onload = function () {
+            resizeCanvas();
+            renderHistory();
+            showToast('¡Bienvenido a cabina, Andrés Vereda!', 'info');
+        };
+    </script>
+</body>
+</html>
+
